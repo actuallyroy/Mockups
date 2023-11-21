@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
+    <script src="https://map-preview-images.s3.amazonaws.com/Fonts/ishans_html2canvas.js"></script>
     <title>Document</title>
     <style>
       img {
@@ -26,7 +27,17 @@
         z-index: 99;
       }
       i {
+        position: relative;
         z-index: 100;
+        top: -490px;
+        left: 450px;
+        font-size: 38px;
+        color: #388e3c;
+        filter: drop-shadow(2px 4px 6px black);
+        cursor: pointer;
+      }
+      i:active{
+        color:#f7fafa;
       }
     </style>
   </head>
@@ -38,8 +49,10 @@
       const imagesCont = document.getElementById("images-cont");
       for (let index = 0; index < noOfImages; index++) {
         imagesCont.innerHTML += `<div class="img-cont">
-        <img src="" alt="" />
-        <img class="bg" src="img${index}.png" alt="" srcset="" />
+        <div style='height: 500px'>
+            <img src="" alt="" />
+            <img class="bg" src="img${index}.png" alt="" srcset="" />
+        </div>
         <i class="bi bi-cloud-arrow-down-fill"></i>
       </div>`;
       }
@@ -56,7 +69,7 @@
           input.onchange = () => {
             let imgConts = document.querySelectorAll(".img-cont");
             imgConts.forEach((item) => {
-              item.firstElementChild.src = URL.createObjectURL(input.files[0]);
+              item.firstElementChild.firstElementChild.src = URL.createObjectURL(input.files[0]);
             });
           };
         });
@@ -71,6 +84,25 @@
           temp.style.top = rect.top - 10 + "px";
           temp.style.width = rect.right - rect.left + 20 + "px";
           temp.style.height = rect.bottom - rect.top + 20 + "px";
+        });
+
+        let downloadBtns = document.querySelectorAll("i");
+        downloadBtns.forEach((btn) => {
+          btn.onclick = () => {
+            if(btn.previousElementSibling.firstElementChild.src != "http://127.0.0.1:5501/index.html"){
+                html2canvas(btn.previousElementSibling, {
+                  dpi: "300",
+                  useCORS: true,
+                  onrendered: function (canvas) {
+                    var canvasImg = canvas.toDataURL("image/png");
+                    let a = document.createElement("a")
+                    a.href = canvasImg
+                    a.download = "test.png"
+                    a.click()
+                  },
+                });
+            }
+          };
         });
 
         function findTransparentCorners(imgElement) {
