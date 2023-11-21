@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
+    <title>Document</title>
+    <style>
+      img {
+        aspect-ratio: 1/1;
+        object-fit: cover;
+        transform-origin: left top;
+        pointer-events: none;
+        position: absolute;
+      }
+      .bg {
+        z-index: 1;
+      }
+      .img-cont {
+        height: 500px;
+        width: 500px;
+        overflow: hidden;
+        position: relative;
+      }
+      input:hover {
+        z-index: 99;
+      }
+      i {
+        z-index: 100;
+      }
+    </style>
+  </head>
+  <body>
+    <input type="file" name="" id="" />
+    <div id="images-cont"></div>
+    <script>
+      let noOfImages = 5;
+      const imagesCont = document.getElementById("images-cont");
+      for (let index = 0; index < noOfImages; index++) {
+        imagesCont.innerHTML += `<div class="img-cont">
+        <img src="" alt="" />
+        <img class="bg" src="img${index}.png" alt="" srcset="" />
+        <i class="bi bi-cloud-arrow-down-fill"></i>
+      </div>`;
+      }
+
+      window.onload = () => {
+        const imgHeight = 500;
+        function fit(img) {
+          let scale = imgHeight / img.height;
+          img.style.transform = `scale(${scale})`;
+        }
+
+        let inputs = document.querySelectorAll("input");
+        inputs.forEach((input) => {
+          input.onchange = () => {
+            let imgConts = document.querySelectorAll(".img-cont");
+            imgConts.forEach((item) => {
+              item.firstElementChild.src = URL.createObjectURL(input.files[0]);
+            });
+          };
+        });
+
+        let imgs = document.querySelectorAll(".bg");
+        imgs.forEach((img) => {
+          fit(img);
+          let temp = img.previousElementSibling;
+          let rect = findTransparentCorners(img);
+          console.log(rect);
+          temp.style.left = rect.left - 10 + "px";
+          temp.style.top = rect.top - 10 + "px";
+          temp.style.width = rect.right - rect.left + 20 + "px";
+          temp.style.height = rect.bottom - rect.top + 20 + "px";
+        });
+
+        function findTransparentCorners(imgElement) {
+          let img = new Image();
+          img.src = imgElement.src;
+          img.height = imgHeight;
+          img.width = imgHeight;
+          // Create a canvas and draw the image onto it
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
+          canvas.width = img.width;
+          canvas.height = img.height;
+          context.drawImage(img, 0, 0, img.width, img.height);
+
+          // Get the image data
+          const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imageData.data;
+
+          let centerHorizontalPixel = (canvas.width * 4) / 2;
+          let centerVerticalPixel = (canvas.height / 2) * canvas.width * 4;
+          let top = null;
+          let bottom = null;
+          let left = null;
+          let right = null;
+          for (let i = 0; i < canvas.height; i++) {
+            let temp = i * canvas.width * 4 + centerHorizontalPixel;
+            if (data[temp + 3] == 0) {
+              if (!top) {
+                top = i;
+              } else {
+                bottom = i;
+              }
+            }
+          }
+          for (let i = centerVerticalPixel; i < centerVerticalPixel + canvas.width * 4; i += 4) {
+            if (data[i + 3] == 0) {
+              if (!left) {
+                left = (i - centerVerticalPixel) / 4;
+              } else {
+                right = (i - centerVerticalPixel) / 4;
+              }
+            }
+          }
+          return {
+            top: top,
+            right: right,
+            left: left,
+            bottom: bottom,
+          };
+        }
+      };
+    </script>
+  </body>
+</html>
