@@ -9,13 +9,14 @@
       canvas {
         transform-origin: top left;
         image-rendering: pixelated;
+        margin-top: 20px;
       }
       .bg {
         height: 500px;
         overflow: hidden;
         position: relative;
       }
-      i{
+      i {
         position: absolute;
         top: 10px;
         left: 10px;
@@ -24,7 +25,7 @@
         filter: drop-shadow(0 0 6px black);
         cursor: pointer;
       }
-      i:active{
+      i:active {
         color: white;
       }
     </style>
@@ -32,7 +33,7 @@
   <body>
     <input type="file" name="" id="" />
     <script>
-      let noOfImages = 6;
+      let noOfImages = 8;
       const imgHeight = 500;
       const margin = 40;
       const imagesCont = document.getElementById("images-cont");
@@ -40,7 +41,7 @@
         let scale = imgHeight / img.height;
         img.style.transform = `scale(${scale})`;
       }
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < noOfImages; i++) {
         let canvas = document.createElement("canvas");
         let ctx = canvas.getContext("2d");
         let img = new Image();
@@ -52,15 +53,15 @@
           let tempDiv = document.createElement("div");
           tempDiv.appendChild(canvas);
           tempDiv.classList.add("bg");
-          let downloadBtn = document.createElement("i")
+          let downloadBtn = document.createElement("i");
           downloadBtn.classList.add("bi", "bi-cloud-arrow-down-fill");
           downloadBtn.onclick = () => {
-            let a = document.createElement("a")
-            a.href = canvas.toDataURL()
-            a.download = `img${i}.png`
-            a.click()
-          }
-          tempDiv.appendChild(downloadBtn)
+            let a = document.createElement("a");
+            a.href = canvas.toDataURL();
+            a.download = `img${i}.png`;
+            a.click();
+          };
+          tempDiv.appendChild(downloadBtn);
           fit(canvas);
           document.body.appendChild(tempDiv);
         };
@@ -68,64 +69,65 @@
       const input = document.querySelector("input");
       input.onchange = () => {
         const file = input.files[0];
-        let img = new Image()
-        img.src = URL.createObjectURL(file)
+        let img = new Image();
+        img.src = URL.createObjectURL(file);
         img.onload = () => {
           let bgs = document.querySelectorAll(".bg");
           bgs.forEach((item) => {
-            let canvas = item.firstElementChild
-            let img1 = new Image()
-            let ctx = canvas.getContext("2d")
-            img1.src = canvas.toDataURL()
-            let rect = findTransparentCorners(canvas)
-            console.log(rect);
-            let scale = 1
-            ctx.drawImage(img, rect.left - margin * scale, rect.top - margin * scale, rect.right - rect.left + margin*scale*2, rect.bottom - rect.top + margin*scale*2)
+            let canvas = item.firstElementChild;
+            let img1 = new Image();
+            let ctx = canvas.getContext("2d");
+            img1.src = canvas.toDataURL();
+            let rect = findTransparentCorners(canvas);
+            // console.log(rect);
+            let scale = 1;
+            let t = canvas.style.transform
+            // console.log(canvas, Number(t.slice(6, t.length - 1)));
+            ctx.drawImage(img, rect.left - margin * scale, rect.top - margin * scale, rect.right - rect.left + margin * scale * 2, rect.bottom - rect.top + margin * scale * 2);
             img1.onload = () => {
-              ctx.drawImage(img1, 0, 0, img1.width, img1.height)
-            }
+              ctx.drawImage(img1, 0, 0, img1.width, img1.height);
+            };
           });
-        }
+        };
       };
 
-      function findTransparentCorners(canvas) {
-        canvas.toBlob(blob => console.log(URL.createObjectURL(blob)))
-        const context = canvas.getContext("2d");
-        // Get the image data
-        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      function findTransparentCorners(canvas, scaleFactor = 0.1) {
+        // Create a temporary canvas
+        const tempCanvas = document.createElement("canvas");
+        tempCanvas.width = canvas.width * scaleFactor;
+        tempCanvas.height = canvas.height * scaleFactor;
+        const tempCtx = tempCanvas.getContext("2d");
+
+        // Draw the original image onto the temporary canvas, scaled down
+        tempCtx.drawImage(canvas, 0, 0, tempCanvas.width, tempCanvas.height);
+
+        // Get image data from the temporary canvas
+        const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
         const data = imageData.data;
-        let centerHorizontalPixel = (canvas.height * 4) / 2;
-        let centerVerticalPixel = (canvas.height / 2) * canvas.width * 4;
-        let top = null;
-        let bottom = null;
-        let left = null;
-        let right = null;
-        for (let i = 0; i < canvas.height; i++) {
-          let temp = i * canvas.width * 4 + centerHorizontalPixel;
-          if (data[temp + 3] == 0) {
-            if (!top) {
-              top = i;
-            } else {
-              bottom = i;
+
+        let top = tempCanvas.height,
+          bottom = -1,
+          left = tempCanvas.width,
+          right = -1;
+        for (let y = 0; y < tempCanvas.height; y++) {
+          for (let x = 0; x < tempCanvas.width; x++) {
+            const alpha = data[(y * tempCanvas.width + x) * 4 + 3];
+            if (alpha < 200) {
+              if (y < top) top = y;
+              if (y > bottom) bottom = y;
+              if (x < left) left = x;
+              if (x > right) right = x;
             }
           }
         }
-        for (let i = centerVerticalPixel; i < centerVerticalPixel + canvas.width * 4; i += 4) {
-          // console.log(data[i], data[i + 1], data[i + 2], data[i + 3]);
-          if (data[i + 3] == 0) {
-            if (!left) {
-              left = (i - centerVerticalPixel) / 4;
-            } else {
-              right = (i - centerVerticalPixel) / 4;
-            }
-          }
-        }
-        return {
-          top: top,
-          right: right,
-          left: left,
-          bottom: bottom,
-        };
+
+        // Scale the coordinates back to the original canvas size
+        if (top !== tempCanvas.height) top = Math.floor(top / scaleFactor);
+        if (left !== tempCanvas.width) left = Math.floor(left / scaleFactor);
+        if (bottom !== -1) bottom = Math.ceil(bottom / scaleFactor);
+        if (right !== -1) right = Math.ceil(right / scaleFactor);
+
+        return { top, right, left, bottom };
       }
     </script>
   </body>
